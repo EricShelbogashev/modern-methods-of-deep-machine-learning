@@ -1,5 +1,5 @@
-from src.SampleFactory import SampleFactory
-from src.PlotGenerator import PlotGenerator
+from SampleFactory import SampleFactory
+from PlotGenerator import PlotGenerator
 
 if __name__ == '__main__':
     # circle, xor, spiral, gauss
