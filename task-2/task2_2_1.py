@@ -11,7 +11,7 @@ import numpy as np
 
 
 class Perceptron:
-    def __init__(self, learning_rate=0.1, dimension=1, activation_function='sigmoid', learn_type='gradient'):
+    def __init__(self, learning_rate=0.1, dimension=1, activation_function='sigmoid', learn_type='gradient', to='x1'):
         if activation_function not in ['step', 'sigmoid']:
             raise ValueError("активационная функция должна быть 'step' или 'sigmoid'")
         if learn_type not in ['gradient', 'other']:
@@ -19,6 +19,7 @@ class Perceptron:
         self.learning_rate = learning_rate
         self.activation_function = activation_function
         self.weights = np.random.rand(dimension + 1) * 0.01
+        self.to = to
 
     @staticmethod
     def _sigmoid(x):
@@ -36,16 +37,19 @@ class Perceptron:
         else:
             raise ValueError("Unsupported activation function. Choose 'sigmoid' or 'step'.")
 
-    def predict(self, input_feature):
-        summation = np.dot(input_feature, self.weights[:-1]) + self.weights[-1]
+    def predict(self, x, y):
+        point = sample_converter.convert_point(x, y, self.to)
+        summation = np.dot(point, self.weights[:-1]) + self.weights[-1]
         return self._activate(summation)
 
-    def fit(self, x, y, epochs=10):
+    def fit(self, train, epochs=10):
+        raw_sample = train[:, :2]
+        labels = train[:, 2]
         for _ in range(epochs):
-            for input_feature, label in zip(x, y):
-                prediction = self.predict(input_feature)
+            for dot, label in zip(raw_sample, labels):
+                input_feature = sample_converter.convert_point(dot[0], dot[1], self.to)
+                prediction = self.predict(dot[0], dot[1])
                 error = label - prediction
-                print(input_feature, label, error)
                 self.weights[:-1] += self.learning_rate * error * input_feature
                 self.weights[-1] += self.learning_rate * error
 
@@ -57,15 +61,9 @@ def prepare_sample(data, to):
     return converted_sample, labels
 
 
-def plot_perceptron_predictions_optimized(x_values, y_values, perceptron, sample_converter, to):
-    X, Y = np.meshgrid(x_values, y_values)
-    samples = np.array([sample_converter.convert_point(x, y, to) for x, y in zip(np.ravel(X), np.ravel(Y))])
-    predictions = np.array([perceptron.predict(sample) for sample in samples])
-
-    # Reshape predictions to match the shape of X and Y for plotting
-    Z = predictions.reshape(X.shape)
-
-    # Plotting
+def plot_perceptron_predictions_optimized(x_values, y_values, perceptron, sample_converter):
+    vectorized_predict = np.vectorize(perceptron.predict)
+    Z = vectorized_predict(X, Y)
     plt.contourf(X, Y, Z, levels=[-0.5, 0.5, 1.5], colors=['red', 'blue'], alpha=0.5)
     plt.xlabel('X')
     plt.ylabel('Y')
@@ -74,7 +72,7 @@ def plot_perceptron_predictions_optimized(x_values, y_values, perceptron, sample
 
 
 class Ensemble:
-    def __init__(self, models: [Perceptron]):
+    def __init__(self, models):
         self.models = models
 
     def fit(self, x, y, epochs=10):
@@ -85,23 +83,21 @@ class Ensemble:
             y_train = np.concatenate([part for j, part in enumerate(y_parts) if j != i])
             self.models[i].fit(x_train, y_train, epochs)
 
-    def predict(self, x):
-        predictions = [model.predict(x) for model in self.models]
+    def predict(self, x, y):
+        predictions = [model.predict(x, y) for model in self.models]
         return np.average(predictions)
 
 
 if __name__ == "__main__":
-    sample_type = 'circle'
-    to = 'sin_x1'
-    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=800, error=0.5)
-    train_data_1, labels = prepare_sample(zipped_sample, 'x1')
-    train_data_2, labels = prepare_sample(zipped_sample, 'x2')
-    perceptron_1 = Perceptron(learning_rate=0.1, activation_function='step')
-    perceptron_2 = Perceptron(learning_rate=0.1, activation_function='step')
-    perceptron_1.fit(train_data_1, labels, epochs=80)
-    perceptron_2.fit(train_data_2, labels, epochs=80)
+    sample_type = 'xor'
+    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=1000, error=0)
+    perceptron_1 = Perceptron(learning_rate=0.1, activation_function='sigmoid', to='x1')
+    perceptron_2 = Perceptron(learning_rate=0.1, activation_function='sigmoid', to='x2')
+    perceptron_1.fit(zipped_sample, epochs=100)
+    perceptron_2.fit(zipped_sample, epochs=100)
     perceptron = Ensemble([perceptron_1, perceptron_2])
 
-    x_values = np.linspace(-1, 1, 100)
-    y_values = np.linspace(-1, 1, 100)
-    plot_perceptron_predictions_optimized(x_values, y_values, perceptron, sample_converter, to)
+    x_values = np.linspace(-0.5, 0.5, 100)
+    y_values = np.linspace(-0.5, 0.5, 100)
+    X, Y = np.meshgrid(x_values, y_values)
+    plot_perceptron_predictions_optimized(X, Y, perceptron, sample_converter)
