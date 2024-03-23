@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('sample')
 from sample.plot_generator import PlotGenerator
 from sample.sample_factory import SampleFactory
