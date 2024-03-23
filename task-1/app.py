@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import solve
 
-N = 50
+N = 10
 epsilon_0 = 0.5  # абсолютное
 
 x_values = np.random.uniform(-1, 1, N)
@@ -65,11 +65,9 @@ def plot_string_a(a: float, b: float, c: float, d: float):
     return f"({a.__round__(2)})x^3 + {b.__round__(2)}(x^2) + {c.__round__(2)}(x) + {d.__round__(2)}"
 
 
-M = 3
+M = 7
 regression(M, x_dense, y_values_a_uniform, y_a_original, plot_string_a(a, b, c, d))
 regression(M, x_dense, y_values_b_uniform, y_b_original, "b, равномерно")
 regression(M, x_dense, y_values_a_distribution, y_a_original, plot_string_a(a, b, c, d))
 regression(M, x_dense, y_values_b_distribution, y_b_original, "b, нормально")
 
-# 6 7 - норм
-# 5 20 - переобучение

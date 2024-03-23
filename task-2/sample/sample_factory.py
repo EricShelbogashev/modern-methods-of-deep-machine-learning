@@ -1,7 +1,7 @@
-from CircleSampleGenerator import CircleSampleGenerator
-from XORSampleGenerator import XORSampleGenerator
-from SpiralSampleGenerator import SpiralSampleGenerator
-from TwoGaussDataClassifier import TwoGaussDataClassifier
+from circle_sample_generator import CircleSampleGenerator
+from xor_sample_generator import XORSampleGenerator
+from spiral_sample_generator import SpiralSampleGenerator
+from two_gauss_data_classifier import TwoGaussDataClassifier
 
 
 class SampleFactory:

@@ -2,145 +2,153 @@ import numpy as np
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from torch import Tensor
+from SampleFactory import SampleFactory
 
 
 class ElementaryPerceptron(nn.Module):
-    def __init__(self, activation_fn, input_size=1):
-        super(ElementaryPerceptron, self).__init__()
-        self.fc = nn.Linear(input_size, 1)  # Линейный слой
-        self.activation_fn = activation_fn  # Функция активации
+    def __init__(self, activation_fn=torch.sigmoid):
+        super().__init__()
+        # Линейный слой: принимает входные данные и производит линейное преобразование
+        self.fc = nn.Linear(1, 1)
+        # Функция активации: нелинейность, применяемая к выходу линейного слоя
+        self.activation_fn = activation_fn
 
     def forward(self, x):
-        return self.activation_fn(self.fc(x))  # Прямой проход
+        # Прямой проход: вычисление выходных данных модели на основе входных данных
+        return self.activation_fn(self.fc(x))
 
 
-def step_function(x):
-    return torch.heaviside(x, torch.tensor([0.5]))
+def train_elementary_perceptron(model, data, labels, epochs, learning_rate=0.1):
+    criterion = torch.nn.BCELoss()  # Binary Cross Entropy Loss for binary classification
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+    for epoch in range(epochs):
+        for i in range(data.size(0)):
+            optimizer.zero_grad()
+            output = model(data[i])  # Model prediction for a single sample
+            loss = criterion(output, labels[i].unsqueeze(0))
+            loss.backward()  # Backpropagation
+            optimizer.step()  # Update model parameters
 
 
-def sigmoid_function(x):
-    return torch.sigmoid(x)
+def generate_samples(num_samples=1000, pattern='xor', noise=0.1):
+    """
+    Генерация образцов на основе указанного шаблона.
+    """
+    return SampleFactory().generate_samples(pattern, num_samples, noise)
 
 
-def train_elementary_perceptron(model: ElementaryPerceptron,
-                                data: Tensor,
-                                labels: Tensor,
-                                count_of_epochs: int,
-                                learning_rate: float = 0.1):
-    for epoch in range(count_of_epochs):
-        for i in range(len(data)):
-            x = data[i]
-            y = labels[i]
-            output = model.forward(x)
-            predicted = 1.0 if output > 0 else 0.0
-            # Расчет ошибки
-            error = y - predicted
-            # Обновление весов с использованием градиентного спуска
-            if error != 0:
-                model.fc.weight.data[0] += learning_rate * error * x
-
-
-def generate_samples_xor(num_samples: int = 1000, error: float = 0.1):
-    width = 1.0
-    height = 1.0
-    x = np.random.uniform(-width / 2, width / 2, num_samples)
-    y = np.random.uniform(-height / 2, height / 2, num_samples)
-
-    x_error = np.random.uniform(-error, error, num_samples)
-    y_error = np.random.uniform(-error, error, num_samples)
-
-    labels = np.logical_xor(x > 0.0, y > 0.0).astype(float)
-    x += x_error * (width / 2)
-    y += y_error * (height / 2)
-
-    return np.column_stack((x, y, labels))
-
-
-def generate_samples_spiral(num_samples: int = 1000, error: float = 0.1):
-    n = num_samples // 2
-
-    def generate_samples_impl(n: int, noise: float, delta: float, label: int):
-        r = np.arange(n) / n * 5
-        t = 1.75 * np.arange(n) / n * 2 * np.pi + delta
-        x = r * np.sin(t) + noise * np.random.uniform(-1, 1, n)
-        y = r * np.cos(t) + noise * np.random.uniform(-1, 1, n)
-        labels = np.full(n, label)
-        return np.column_stack((x, y, labels))
-
-    samples1 = generate_samples_impl(n, error, 0, 0)
-    samples2 = generate_samples_impl(n, error, np.pi, 1)
-    return np.vstack((samples1, samples2))
-
-
-def generate_samples_circle(num_samples=1000, error=0.1):
-    inner_radius: float = 0.25
-    outer_radius: float = 0.5
-    num_inner_heap = num_samples // 2
-    num_outer_heap = num_samples - num_inner_heap
-
-    inner_radius_for_center = np.random.uniform(low=inner_radius,
-                                                high=inner_radius + error * inner_radius)
-    inner_radius_for_bound = np.random.uniform(low=inner_radius - error * inner_radius,
-                                               high=inner_radius)
-
-    def _generate_samples(num_samples: int, inner_radius: float, outer_radius: float):
-        angles = np.random.uniform(0, 2 * np.pi, num_samples)
-        radii = np.random.uniform(inner_radius, outer_radius, num_samples)
-        x = radii * np.cos(angles)
-        y = radii * np.sin(angles)
-        return np.column_stack((x, y))
-
-    generated_center = _generate_samples(num_inner_heap, 0, inner_radius_for_center)
-    generated_bound = _generate_samples(num_outer_heap, inner_radius_for_bound, outer_radius)
-
-    generated_center_res = np.hstack((generated_center, np.zeros((generated_center.shape[0], 1))))
-    generated_bound_res = np.hstack((generated_bound, np.ones((generated_bound.shape[0], 1))))
-
-    return np.vstack((generated_center_res, generated_bound_res))
-
-
-def generate_samples_gauss(num_samples=1000, error=0.1):
-    variance_scale = np.interp(error, [0, 0.5], [0.5, 4])
-    n = num_samples // 2
-
-    positive_samples = np.random.normal(2, variance_scale, size=(n, 2))
-    positive_labels = np.ones((n, 1))
-    positive_data = np.hstack((positive_samples, positive_labels))
-
-    negative_samples = np.random.normal(-2, variance_scale, size=(n, 2))
-    negative_labels = np.zeros((n, 1))
-    negative_data = np.hstack((negative_samples, negative_labels))
-
-    return np.vstack((positive_data, negative_data))
-
-
-def input_translator(x: torch.Tensor, modification_type: str) -> torch.Tensor:
+def input_translator(x, modification_type):
+    """
+    Преобразование входных признаков на основе указанного типа модификации.
+    """
     if modification_type == "x1":
-        return x[:, 0:1]  # Возвращает x1
+        return x[:, 0:1]
     elif modification_type == "x2":
-        return x[:, 1:2]  # Возвращает x2
+        return x[:, 1:2]
     elif modification_type == "x1_squared":
-        return x[:, 0:1] ** 2  # Возвращает x1^2
+        return x[:, 0:1] ** 2
     elif modification_type == "x2_squared":
-        return x[:, 1:2] ** 2  # Возвращает x2^2
+        return x[:, 1:2] ** 2
     elif modification_type == "sin_x1":
-        return torch.sin(x[:, 0:1])  # Возвращает sin(x1)
+        return torch.sin(x[:, 0:1])
     elif modification_type == "sin_x2":
-        return torch.sin(x[:, 1:2])  # Возвращает sin(x2)
+        return torch.sin(x[:, 1:2])
+    elif modification_type == "x1_x2":
+        return x[:, 0:1] * x[:, 1:2]
     else:
-        raise ValueError("Unknown modification type")
+        raise ValueError(f"Неизвестный тип модификации: {modification_type}")
 
 
-samples = generate_samples_xor(1000)
-data_example = np.column_stack((samples[:, 0], samples[:, 1]))
-labels_example = samples[:, 2]
+def plot_classification_areas(model, samples, modification_type):
+    data = torch.tensor(samples[:, :2], dtype=torch.float32)
+    labels = torch.tensor(samples[:, 2], dtype=torch.float32).unsqueeze(1)
 
-# Конвертация данных в тензоры PyTorch
-data_tensor = torch.tensor(data_example, dtype=torch.float32)
-# data_example = input_translator(data_tensor, "x2_squared")
-labels_tensor = torch.tensor(labels_example, dtype=torch.float32)
+    # Создание сетки точек для визуализации
+    x_min, x_max = data[:, 0].min() - 1, data[:, 0].max() + 1
+    y_min, y_max = data[:, 1].min() - 1, data[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01),
+                         np.arange(y_min, y_max, 0.01))
 
-# Создание экземпляра элементарного перцептрона с шаговой функцией активации
-activation_function = sigmoid_function
-perceptron_step = ElementaryPerceptron(activation_fn=activation_function)
+    # Преобразование сетки в тензор и последующая модификация входных данных
+    meshgrid_input = torch.Tensor(np.c_[xx.ravel(), yy.ravel()])
+    translated_input = input_translator(meshgrid_input, modification_type)
+
+    print(translated_input)
+    # Предсказание классов для каждой точки сетки с использованием модифицированных входных данных
+    Z = model(translated_input).detach().numpy()
+
+    # Преобразование выходных данных для получения бинарных классовых меток
+    Z = Z.reshape(xx.shape)
+
+    # Визуализация результатов классификации
+    plt.contourf(xx, yy, Z, alpha=0.7, cmap='coolwarm')
+    plt.scatter(data[:, 0], data[:, 1], c=labels, s=50, edgecolor='k', cmap='coolwarm')
+    plt.xlabel('Признак 1')
+    plt.ylabel('Признак 2')
+    plt.title('Области классификации')
+    plt.show()
+
+
+def get_perceptron(sample, modification_type, activation_fn, epochs, learning_rate):
+    # Подготовка данных
+    data_tensor = torch.tensor(sample[:, :2], dtype=torch.float32)
+    labels_tensor = torch.tensor(sample[:, 2], dtype=torch.float32)
+
+    # Модификация входных данных
+    modified_data = input_translator(data_tensor, modification_type)
+
+    # Создание и обучение модели
+    model = ElementaryPerceptron(activation_fn=activation_fn)
+    train_elementary_perceptron(model, modified_data, labels_tensor, epochs, learning_rate)
+    return model
+
+
+sample_factory = SampleFactory()
+samples = sample_factory.generate_samples('spiral', 100, 0.5)  # Предполагается, что у вас есть реализация SampleFactory
+modification_type = 'sin_x1'
+epochs = 400
+learning_rate = 0.1
+activation_fn = torch.sigmoid
+
+# perceptron_model = get_perceptron(samples, modification_type, activation_fn, epochs, learning_rate)
+# plot_classification_areas(perceptron_model, samples, modification_type)
+#
+# weight = perceptron_model.fc.weight.data.numpy()  # Для получения веса в виде numpy массива
+# bias = perceptron_model.fc.bias.data.numpy()  # Для получения смещения в виде numpy массива
+# print(weight, bias)
+
+def plot_classification_areas_ensemble(perceptrons, samples, modification_type):
+    data = torch.tensor(samples[:, :2], dtype=torch.float32)
+    labels = torch.tensor(samples[:, 2], dtype=torch.float32).unsqueeze(1)
+
+    # Создание сетки точек для визуализации
+    x_min, x_max = data[:, 0].min() - 1, data[:, 0].max() + 1
+    y_min, y_max = data[:, 1].min() - 1, data[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01),
+                         np.arange(y_min, y_max, 0.01))
+
+    # Преобразование сетки в тензор и последующая модификация входных данных
+    meshgrid_input = torch.Tensor(np.c_[xx.ravel(), yy.ravel()])
+    translated_input = input_translator(meshgrid_input, modification_type)
+
+    print(translated_input)
+    # Предсказание классов для каждой точки сетки с использованием модифицированных входных данных
+    Z_tmp = []
+    for model in perceptrons:
+        Z_tmp.append(model(translated_input).detach().numpy())
+    Z_tmp = np.array(Z_tmp)  # Преобразование списка массивов в один NumPy массив
+    Z = np.mean(Z_tmp, axis=0)
+
+    # Визуализация результатов классификации
+    plt.contourf(xx, yy, Z, alpha=0.7, cmap='coolwarm')
+    plt.scatter(data[:, 0], data[:, 1], c=labels, s=50, edgecolor='k', cmap='coolwarm')
+    plt.xlabel('Признак 1')
+    plt.ylabel('Признак 2')
+    plt.title('Области классификации')
+    plt.show()
+
+perceptrons = []
+for type in ['x1', 'x2']:
+    perceptrons.append(get_perceptron(samples, type, activation_fn, epochs, learning_rate))
+plot_classification_areas_ensemble(perceptrons, samples, modification_type)

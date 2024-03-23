@@ -1,5 +1,5 @@
 import numpy as np
-from SampleGenerator import SampleGenerator
+from sample_generator import SampleGenerator
 
 
 class CircleSampleGenerator(SampleGenerator):
@@ -24,7 +24,8 @@ class CircleSampleGenerator(SampleGenerator):
 
         return np.vstack((generated_center_res, generated_bound_res))
 
-    def _generate_samples(self, num_samples: int, inner_radius: float, outer_radius: float):
+    @staticmethod
+    def _generate_samples(num_samples: int, inner_radius: float, outer_radius: float):
         angles = np.random.uniform(0, 2 * np.pi, num_samples)
         radii = np.random.uniform(inner_radius, outer_radius, num_samples)
         x = radii * np.cos(angles)

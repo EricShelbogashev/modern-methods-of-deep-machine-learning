@@ -1,5 +1,5 @@
 import numpy as np
-from SampleGenerator import SampleGenerator
+from sample_generator import SampleGenerator
 
 
 class TwoGaussDataClassifier(SampleGenerator):
