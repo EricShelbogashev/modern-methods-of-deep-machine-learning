@@ -88,5 +88,3 @@ if __name__ == "__main__":
     y_values = np.linspace(-4, 4, 100)
     X, Y = np.meshgrid(x_values, y_values)
     plot_perceptron_predictions_optimized(X, Y, perceptron)
-    plot_perceptron_predictions_optimized(X, Y, perceptron_1)
-    plot_perceptron_predictions_optimized(X, Y, perceptron_2)
