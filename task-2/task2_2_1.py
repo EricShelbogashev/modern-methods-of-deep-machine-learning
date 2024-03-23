@@ -50,21 +50,15 @@ class Perceptron:
                 input_feature = sample_converter.convert_point(dot[0], dot[1], self.to)
                 prediction = self.predict(dot[0], dot[1])
                 error = label - prediction
-                self.weights[:-1] += self.learning_rate * error * input_feature
-                self.weights[-1] += self.learning_rate * error
+                print(self.weights, input_feature, prediction, error)
+                self.weights[:-1] = self.weights[:-1] + self.learning_rate * error * input_feature
+                self.weights[-1] = self.learning_rate * error
 
 
-def prepare_sample(data, to):
-    raw_sample = data[:, :2]
-    labels = data[:, 2]
-    converted_sample = sample_converter.convert(raw_sample, to)
-    return converted_sample, labels
-
-
-def plot_perceptron_predictions_optimized(x_values, y_values, perceptron, sample_converter):
+def plot_perceptron_predictions_optimized(X, Y, perceptron):
     vectorized_predict = np.vectorize(perceptron.predict)
     Z = vectorized_predict(X, Y)
-    plt.contourf(X, Y, Z, levels=[-0.5, 0.5, 1.5], colors=['red', 'blue'], alpha=0.5)
+    plt.contourf(X, Y, Z, cmap='Spectral')
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.title('Perceptron Predictions Optimized')
@@ -75,14 +69,6 @@ class Ensemble:
     def __init__(self, models):
         self.models = models
 
-    def fit(self, x, y, epochs=10):
-        x_parts = np.array_split(x, len(self.models))
-        y_parts = np.array_split(y, len(self.models))
-        for i in range(len(self.models)):
-            x_train = np.concatenate([part for j, part in enumerate(x_parts) if j != i])
-            y_train = np.concatenate([part for j, part in enumerate(y_parts) if j != i])
-            self.models[i].fit(x_train, y_train, epochs)
-
     def predict(self, x, y):
         predictions = [model.predict(x, y) for model in self.models]
         return np.average(predictions)
@@ -90,14 +76,17 @@ class Ensemble:
 
 if __name__ == "__main__":
     sample_type = 'xor'
-    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=1000, error=0)
-    perceptron_1 = Perceptron(learning_rate=0.1, activation_function='sigmoid', to='x1')
-    perceptron_2 = Perceptron(learning_rate=0.1, activation_function='sigmoid', to='x2')
-    perceptron_1.fit(zipped_sample, epochs=100)
-    perceptron_2.fit(zipped_sample, epochs=100)
+    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=100, error=0.1)
+    PlotGenerator.plot_samples(zipped_sample, "")
+    perceptron_1 = Perceptron(learning_rate=0.01, activation_function='step', to='x1_x2_product')
+    perceptron_2 = Perceptron(learning_rate=0.01, activation_function='step', to='x1_x2_product')
+    perceptron_1.fit(zipped_sample, epochs=50)
+    perceptron_2.fit(zipped_sample, epochs=50)
     perceptron = Ensemble([perceptron_1, perceptron_2])
 
     x_values = np.linspace(-0.5, 0.5, 100)
     y_values = np.linspace(-0.5, 0.5, 100)
     X, Y = np.meshgrid(x_values, y_values)
-    plot_perceptron_predictions_optimized(X, Y, perceptron, sample_converter)
+    plot_perceptron_predictions_optimized(X, Y, perceptron)
+    plot_perceptron_predictions_optimized(X, Y, perceptron_1)
+    plot_perceptron_predictions_optimized(X, Y, perceptron_2)
