@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from sample_generator import SampleGenerator
 
@@ -8,10 +10,12 @@ class TwoGaussDataClassifier(SampleGenerator):
         n = num_samples // 2
 
         positive_samples = np.random.normal(2, variance_scale, size=(n, 2))
+        # positive_samples = positive_samples / np.max(np.abs(positive_samples))
         positive_labels = np.ones((n, 1))
         positive_data = np.hstack((positive_samples, positive_labels))
 
         negative_samples = np.random.normal(-2, variance_scale, size=(n, 2))
+        # negative_samples = negative_samples / np.max(np.abs(negative_samples))
         negative_labels = np.zeros((n, 1))
         negative_data = np.hstack((negative_samples, negative_labels))
 

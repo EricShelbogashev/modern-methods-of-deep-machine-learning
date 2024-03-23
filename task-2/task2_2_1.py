@@ -75,17 +75,17 @@ class Ensemble:
 
 
 if __name__ == "__main__":
-    sample_type = 'xor'
-    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=100, error=0.1)
+    sample_type = 'gauss'
+    zipped_sample = SampleFactory().generate_samples(sample_type=sample_type, num_samples=800, error=0.0)
     PlotGenerator.plot_samples(zipped_sample, "")
-    perceptron_1 = Perceptron(learning_rate=0.01, activation_function='step', to='x1_x2_product')
-    perceptron_2 = Perceptron(learning_rate=0.01, activation_function='step', to='x1_x2_product')
+    perceptron_1 = Perceptron(learning_rate=0.01, activation_function='step', to='sin_x2')
+    perceptron_2 = Perceptron(learning_rate=0.01, activation_function='step', to='sin_x1')
     perceptron_1.fit(zipped_sample, epochs=50)
     perceptron_2.fit(zipped_sample, epochs=50)
     perceptron = Ensemble([perceptron_1, perceptron_2])
 
-    x_values = np.linspace(-0.5, 0.5, 100)
-    y_values = np.linspace(-0.5, 0.5, 100)
+    x_values = np.linspace(-4, 4, 100)
+    y_values = np.linspace(-4, 4, 100)
     X, Y = np.meshgrid(x_values, y_values)
     plot_perceptron_predictions_optimized(X, Y, perceptron)
     plot_perceptron_predictions_optimized(X, Y, perceptron_1)
